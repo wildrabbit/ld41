@@ -21,6 +21,7 @@ public class BaseShip : MonoBehaviour
 
     protected SpriteRenderer spRenderer;
     protected Collider2D shipCollider;
+    protected PlanetManager manager;
 
     protected BasePlanet rootPlanet;
 
@@ -29,16 +30,32 @@ public class BaseShip : MonoBehaviour
     protected const float kRadiusMinOffset = 0.1f;
     protected const float kRadiusMaxOffset = 0.3f;
 
-    BasePlanet targetPlanet;
+    public float speedMultiplier = 2.0f;
+
+    BasePlanet targetPlanet = null;
     float targetOrientation;
     Vector2 velocity;
     //BaseShip enemyShip;
+
+    TeamType teamID = TeamType.Player;
+    public TeamType TeamID
+    {
+        get { return teamID; }
+    }
 
     public bool IsDead
     {
         get
         {
             return shipState == ShipState.Dead;
+        }
+    }
+
+    public bool HasTarget
+    {
+        get
+        {
+            return targetPlanet != null;
         }
     }
 
@@ -52,12 +69,14 @@ public class BaseShip : MonoBehaviour
 
     // Use this for initialization
     void Awake () {
+        manager = Transform.FindObjectOfType<PlanetManager>();
         spRenderer = GetComponent<SpriteRenderer>();
         shipCollider = GetComponent<Collider2D>();
 	}
 
     public void SetHQ(BasePlanet hq)
     {
+        teamID = hq.TeamID;
         rootPlanet = hq;
         transform.SetParent(rootPlanet.transform.parent);
         orbitDistance = rootPlanet.defaultScale * (1.0f + UnityEngine.Random.Range(kRadiusMinOffset, kRadiusMaxOffset)) / 2.0f;
@@ -99,7 +118,7 @@ public class BaseShip : MonoBehaviour
             //if (Mathf.Abs(targetOrientation - deg ) < 2.0f)
             //{
                 velocity = (targetPlanet.transform.position - transform.position).normalized;
-                transform.position += (Vector3)((3.0f * Time.deltaTime) * velocity);
+                transform.position += (Vector3)(((float)manager.metronome.TimeBetweenBeats * speedMultiplier  *  Time.deltaTime) * velocity);
 
                 if (Vector2.Distance(transform.position, targetPlanet.transform.position) < 1)
                 {

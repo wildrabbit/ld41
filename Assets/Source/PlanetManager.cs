@@ -12,6 +12,12 @@ public enum BeatResult
     Awesome
 }
 
+public enum TeamType
+{
+    Player,
+    AI
+}
+
 public class PlanetManager : MonoBehaviour
 {
     public const double kMinMarkerTime = 0.5;
@@ -332,6 +338,7 @@ public class PlanetManager : MonoBehaviour
     {
         foreach (BaseShip s in ships)
         {
+            if (target.TeamID == s.TeamID || s.HasTarget) continue;
             s.SetTarget(target);
             s.ApplyDamageBonus(attackBonus);
         }
@@ -340,5 +347,20 @@ public class PlanetManager : MonoBehaviour
     public bool HasShips()
     {
         return ships.Count > 0;
+    }
+
+    public List<BasePlanet> GetPlanetsInFaction(TeamType faction)
+    {
+        return new List<BasePlanet>(System.Array.FindAll(followers, (planet) => planet.TeamID == faction && !planet.Destroyed));
+    }
+
+    public List<BaseShip> GetShipsForFaction(TeamType faction)
+    {
+        return ships.FindAll((ship) => ship.TeamID == faction && !ship.IsDead);
+    }
+
+    public List<BasePlanet> GetDestroyedPlanets(TeamType faction)
+    {
+        return new List<BasePlanet>(System.Array.FindAll(followers, (planet) => planet.TeamID == faction && planet.Destroyed));
     }
 }

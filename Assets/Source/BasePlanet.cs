@@ -34,12 +34,23 @@ public class BasePlanet : MonoBehaviour
 
     protected PlanetState planetState = PlanetState.Desert;
 
+    public bool Destroyed
+    {
+        get { return planetState == PlanetState.Destroyed; }
+    }
+
     public Color baseColour = new Color(0,1,1,1);
     public Color desertColour = new Color(0, 1, 1, 0.4f);
     public Color disabledColour = new Color(0.3f, 0.3f, 0.3f, 1);
 
     public float maxHP = 100;
-    float hp;
+    protected float hp;
+
+    protected TeamType teamID = TeamType.Player;
+    public TeamType TeamID
+    {
+        get { return teamID; }
+    }
     
 
     const int kColourId1 = 999;
@@ -48,6 +59,7 @@ public class BasePlanet : MonoBehaviour
     public float defaultScale = 1.0f;
 
     Sequence seq = null;
+    Sequence blinkSeq = null;
 
     public List<ResourceRequirement> requirements = new List<ResourceRequirement>();
 
@@ -167,23 +179,34 @@ public class BasePlanet : MonoBehaviour
          manager.EvaluateTap(this);
     }
 
+    public void Repair()
+    {
+        SetState(PlanetState.Colonized);
+        hp = maxHP;
+    }
+
     public bool Hit(float damage)
     {
-        Sequence blinkSeq = DOTween.Sequence();
         Color oldColour = new Color(spRenderer.color.r, spRenderer.color.g, spRenderer.color.b, spRenderer.color.a);
 
-        blinkSeq.Append(spRenderer.DOFade(0.0f, 0.05f));
-        blinkSeq.Join(spRenderer.DOBlendableColor(Color.red, 0.05f));
-        blinkSeq.Append(spRenderer.DOFade(1.0f, 0.05f));
-        blinkSeq.Join(spRenderer.DOBlendableColor(oldColour, 0.05f));
-        blinkSeq.AppendCallback(() => { spRenderer.color = oldColour; });
-        blinkSeq.SetLoops(4);
+        if (blinkSeq == null)
+        {
+            blinkSeq = DOTween.Sequence();
+
+            blinkSeq.Append(spRenderer.DOFade(0.0f, 0.05f));
+            blinkSeq.Join(spRenderer.DOBlendableColor(Color.red, 0.05f));
+            blinkSeq.Append(spRenderer.DOFade(1.0f, 0.05f));
+            blinkSeq.Join(spRenderer.DOBlendableColor(oldColour, 0.05f));
+            blinkSeq.AppendCallback(() => { spRenderer.color = oldColour; blinkSeq = null; });
+            blinkSeq.SetLoops(4);
+        }
 
 
         hp = Mathf.Max(0, hp - damage);
         Debug.LogFormat("Planet {0} took {1} damage", transform.name, damage);
         if (Mathf.Approximately(hp, 0))
         {
+            SetState(PlanetState.Destroyed);
             return true;
         }
         return false;

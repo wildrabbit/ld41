@@ -23,7 +23,7 @@ GameObject:
   - component: {fileID: 114608958037680086}
   - component: {fileID: 61755304051346104}
   m_Layer: 0
-  m_Name: FighterShip
+  m_Name: EnemyFighterShip
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -37,7 +37,7 @@ Transform:
   m_GameObject: {fileID: 1505847673687286}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.2, y: 0.45, z: 1}
+  m_LocalScale: {x: 0.2, y: 0.35, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 0
@@ -81,7 +81,7 @@ MonoBehaviour:
   shipName: Fighter
   maxHP: 10
   damage: 5
-  speedMultiplier: 4
+  speedMultiplier: 3
   angularSpeed: 1
   multipliers: []
 --- !u!212 &212188805122511988
@@ -119,7 +119,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 5
   m_Sprite: {fileID: 21300000, guid: 296b3a290cbde694d91dc30d4b38a3bc, type: 3}
-  m_Color: {r: 0.38431376, g: 0.46274513, b: 0.61960787, a: 1}
+  m_Color: {r: 0.9558824, g: 0.6363536, b: 0.6114836, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
