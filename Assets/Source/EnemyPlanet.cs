@@ -72,6 +72,7 @@ public class EnemyPlanet : BasePlanet
 
             nextDecisionBeat += Random.Range(3,6) * UnityEngine.Random.Range(1, 4);
         }
+        base.OnBeat(isRelevant);
     }
 
     public override void OnBeatSuccess(BasePlanet planet, BeatResult result)
@@ -113,4 +114,67 @@ public class EnemyPlanet : BasePlanet
         manager.HitPlayerBase(counterDamage);
     }
 
+
+    public override bool ActionAvailable()
+    {
+        return planetState != PlanetState.Destroyed; // maybe we'll allowed repairing directly here
+    }
+
+    public override bool ActionAllowed()
+    {
+        switch (planetState)
+        {
+            case PlanetState.Colonized:
+                {
+                    return CanAttackPlanet();
+                }
+            case PlanetState.Desert:
+                {
+                    return CanColonize();
+                }
+            default:
+                return false;
+        }
+    }
+
+    public override List<Sprite> GetMissingResourcesForAction()
+    {
+        List<Sprite> result = new List<Sprite>();
+
+        if (planetState == PlanetState.Desert && !CanColonize())
+        {
+            foreach (ResourceRequirement req in requirements)
+            {
+                if (manager.GetResourceType(req.type) < req.amount)
+                {
+                    result.Add(manager.GetSmallIconForResourceType(req.type));
+                }
+            }
+        }
+        else if (planetState == PlanetState.Colonized && !CanAttackPlanet())
+        {
+            foreach (ResourceRequirement req in deploymentCosts)
+            {
+                if (manager.GetResourceType(req.type) < req.amount)
+                {
+                    result.Add(manager.GetSmallIconForResourceType(req.type));
+                }
+            }
+            result.Add(manager.smallShipIcon);
+        }
+        return result;
+    }
+
+    public override Sprite GetSpriteForAction()
+    {
+        if (planetState == PlanetState.Desert && CanColonize())
+        {
+            return manager.colonizeIcon;
+        }
+        else if (planetState == PlanetState.Colonized && CanAttackPlanet())
+        {
+            return manager.attackIcon;
+        }
+        return null;
+    }
 }

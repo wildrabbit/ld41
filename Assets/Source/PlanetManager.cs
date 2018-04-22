@@ -18,12 +18,31 @@ public enum TeamType
     AI
 }
 
+[System.Serializable]
+public struct ResourceIconMapping
+{
+    public ResourceType type;
+    public Sprite resourceIcon;
+    public ResourceIconMapping(ResourceType _type, Sprite _icon)
+    {
+        type = _type;
+        resourceIcon = _icon;
+    }
+}
+
 public class PlanetManager : MonoBehaviour
 {
     public const double kMinMarkerTime = 0.5;
     public const double kFailureThreshold = 0.2;
     public const double kAwesomeThreshold = 0.08;
     const double kGoodThreshold = 0.2;
+
+    public Sprite colonizeIcon;
+    public Sprite shipIcon;
+    public Sprite attackIcon;
+    public Sprite protectIcon;
+    public Sprite repairIcon;
+    public Sprite smallShipIcon;
 
     public Dictionary<ResourceType, int> resources;
 
@@ -35,6 +54,12 @@ public class PlanetManager : MonoBehaviour
     event Action<bool> Beat;
     event Action<BasePlanet, BeatResult> BeatSuccess;
     event Action<BasePlanet> BeatFailed;
+
+    public ResourceCounters resourceCounters;
+
+    public ResourceIconMapping[] resourceIcons;
+    public ResourceIconMapping[] smallIcons;
+
 
     public Song leSong;
 
@@ -258,6 +283,10 @@ public class PlanetManager : MonoBehaviour
     public void AddResource(ResourceType type, int units)
     {
         resources[type] += units;
+        if (resourceCounters != null)
+        {
+            resourceCounters.UpdateValue(type, resources[type], true);
+        }
     }
 
     public void DecreaseResource(ResourceType type, int units)
@@ -267,6 +296,7 @@ public class PlanetManager : MonoBehaviour
         {
             resources[type] = 0;
         }
+        resourceCounters.UpdateValue(type, resources[type]);
     }
 
     public bool SpendResource(ResourceType type, int units)
@@ -274,6 +304,7 @@ public class PlanetManager : MonoBehaviour
         if (resources[type] >= units )
         {
             resources[type] -= units;
+            resourceCounters.UpdateValue(type, resources[type]);
             return true;
         }
         else
@@ -305,6 +336,14 @@ public class PlanetManager : MonoBehaviour
             for (int i = idx; i >= 0; --i)
             {
                 resources[reqs[i].type] += reqs[i].amount;
+            }
+        }
+        else
+        {
+            // Apply bump
+            foreach(ResourceRequirement req in reqs)
+            {
+                resourceCounters.UpdateValue(req.type, resources[req.type]);
             }
         }
         return allOk;
@@ -363,4 +402,34 @@ public class PlanetManager : MonoBehaviour
     {
         return new List<BasePlanet>(System.Array.FindAll(followers, (planet) => planet.TeamID == faction && planet.Destroyed));
     }
+
+    public void SetResourceCounter(ResourceCounters resourceHUD)
+    {
+        resourceCounters = resourceHUD;
+    }
+
+    public Sprite GetIconForResourceType(ResourceType type)
+    {
+        foreach(ResourceIconMapping mapping in resourceIcons)
+        {
+            if (type == mapping.type)
+            {
+                return mapping.resourceIcon;
+            }
+        }
+        return null;
+    }
+
+    public Sprite GetSmallIconForResourceType(ResourceType type)
+    {
+        foreach (ResourceIconMapping mapping in smallIcons)
+        {
+            if (type == mapping.type)
+            {
+                return mapping.resourceIcon;
+            }
+        }
+        return null;
+    }
+
 }

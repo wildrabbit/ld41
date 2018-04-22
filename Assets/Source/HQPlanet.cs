@@ -36,6 +36,27 @@ public class HQPlanet : ResourcePlanet
                 manager.AddResource(resourceType, units);
             }
         }
-        base.OnBeatSuccess(planet, result);
+        BlinkColour();
+        CheckColonize(planet);
+    }
+
+    public override bool ActionAvailable()
+    {
+        return planetState != PlanetState.Destroyed; // maybe we'll allowed repairing directly here
+    }
+
+    public override bool ActionAllowed()
+    {
+        return ActionAvailable();
+    }
+
+    public override List<Sprite> GetMissingResourcesForAction()
+    {
+        return new List<Sprite>();
+    }
+
+    public override Sprite GetSpriteForAction()
+    {
+        return manager.GetIconForResourceType(resourceType);
     }
 }

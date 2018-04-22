@@ -12,13 +12,13 @@ public class BeatCounter : MonoBehaviour
 	void Start () {
         manager = Transform.FindObjectOfType<PlanetManager>();
         text = GetComponent<Text>();
-        text.text = string.Format("B: {0}", manager.TotalBeats);
+        text.text = string.Format("B: {0}", manager.TotalBeats - 1);
 		
 	}
 	
 	// Update is called once per frame
 	void Update ()
     {
-        text.text = string.Format("B: {0}", manager.TotalBeats);
+        text.text = string.Format("B: {0}", manager.TotalBeats - 1);
     }
 }

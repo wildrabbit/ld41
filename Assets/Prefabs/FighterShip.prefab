@@ -81,7 +81,7 @@ MonoBehaviour:
   shipName: Fighter
   maxHP: 10
   damage: 5
-  speedMultiplier: 4
+  speedMultiplier: 9
   angularSpeed: 1
   multipliers: []
 --- !u!212 &212188805122511988

@@ -34,10 +34,16 @@ public class BasePlanet : MonoBehaviour
 
     protected PlanetState planetState = PlanetState.Desert;
 
+    public bool Colonized
+    {
+        get { return planetState == PlanetState.Colonized; }
+    }
     public bool Destroyed
     {
         get { return planetState == PlanetState.Destroyed; }
     }
+
+    PlanetActionHUD actionHUD = null;
 
     public Color baseColour = new Color(0,1,1,1);
     public Color desertColour = new Color(0, 1, 1, 0.4f);
@@ -89,25 +95,28 @@ public class BasePlanet : MonoBehaviour
                 case PlanetState.Colonized:
                     {
                         seq.Complete(false);
-                        spRenderer.color = baseColour;
                         planetCollider.enabled = true;
                         break;
                     }
                 case PlanetState.Desert:
                     {
-                        spRenderer.color = desertColour;
                         planetCollider.enabled = true;
                         break;
                     }
                 case PlanetState.Destroyed:
                     {
-                        spRenderer.color = disabledColour;
                         planetCollider.enabled = false;
                         break;
                     }
             }
+            spRenderer.color = GetColourForState(newState);
             planetState = newState;
         }
+    }
+
+    public void SetActionHUD(PlanetActionHUD planetHUD)
+    {
+        actionHUD = planetHUD;
     }
 
     // Use this for initialization
@@ -116,7 +125,7 @@ public class BasePlanet : MonoBehaviour
         SetState(defaultState, true);
     }
 
-  public void Colonize()
+  public virtual void Colonize()
     {
         SetState(PlanetState.Colonized);
     }
@@ -134,6 +143,14 @@ public class BasePlanet : MonoBehaviour
         float scale = isRelevant ? 1.5f : 1.05f;
         mySequence.Append(transform.DOScale(defaultScale * scale, 0.15f));
         mySequence.Append(transform.DOScale(defaultScale, 0.04f));
+
+        if (actionHUD != null)
+        {
+            Sequence hudSeq = DOTween.Sequence();
+            Vector3 hudScale = actionHUD.transform.localScale;
+            hudSeq.Append(actionHUD.transform.DOScale(hudScale * 1.05f, 0.15f));
+            hudSeq.Append(actionHUD.transform.DOScale(hudScale, 0.04f));
+        }
     }
 
     public bool CanColonize()
@@ -148,12 +165,15 @@ public class BasePlanet : MonoBehaviour
         return true;
     }
 
-    public virtual void OnBeatSuccess(BasePlanet planet, BeatResult result)
+    public void BlinkColour()
     {
         Color colour = spRenderer.color;
         seq = DOTween.Sequence();
         seq.Append(spRenderer.DOBlendableColor(Color.yellow, 0.1f));
         seq.Append(spRenderer.DOColor(colour, 0.025f));
+    }
+    public void CheckColonize(BasePlanet planet)
+    {
 
         if (planetState == PlanetState.Desert && CanColonize())
         {
@@ -163,6 +183,12 @@ public class BasePlanet : MonoBehaviour
             }
             Colonize();
         }
+    }
+    public virtual void OnBeatSuccess(BasePlanet planet, BeatResult result)
+    {
+        BlinkColour();
+        CheckColonize(planet);
+
     }
 
     public virtual void OnBeatFailed(BasePlanet planet)
@@ -185,9 +211,20 @@ public class BasePlanet : MonoBehaviour
         hp = maxHP;
     }
 
+    public Color GetColourForState(PlanetState st)
+    {
+        switch(st)
+        {
+            case PlanetState.Colonized: return baseColour;
+            case PlanetState.Desert: return desertColour;
+            case PlanetState.Destroyed: return disabledColour;
+        }
+        return Color.white;
+    }
+
     public bool Hit(float damage)
     {
-        Color oldColour = new Color(spRenderer.color.r, spRenderer.color.g, spRenderer.color.b, spRenderer.color.a);
+        Color oldColour = GetColourForState(planetState);
 
         if (blinkSeq == null)
         {
@@ -209,6 +246,32 @@ public class BasePlanet : MonoBehaviour
             SetState(PlanetState.Destroyed);
             return true;
         }
+        return false;
+    }
+
+    public virtual bool ActionAvailable()
+    {
+        return false;
+    }
+
+    public virtual bool ActionAllowed()
+    {
+        return true;
+    }
+
+    public virtual List<Sprite> GetMissingResourcesForAction()
+    {
+        return null;
+    }
+
+    public virtual Sprite GetSpriteForAction()
+    {
+        return null;
+    }
+
+    public virtual bool TryGetBuildingTypeSmallIcon(out Sprite sp)
+    {
+        sp = null;
         return false;
     }
 }

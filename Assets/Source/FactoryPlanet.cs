@@ -60,4 +60,69 @@ public class FactoryPlanet : BasePlanet
         }
         return true;
     }
+
+    public override bool ActionAvailable()
+    {
+        return planetState != PlanetState.Destroyed; // maybe we'll allowed repairing directly here
+    }
+
+    public override bool ActionAllowed()
+    {
+        switch (planetState)
+        {
+            case PlanetState.Colonized:
+                {
+                    return CanSpawnShip();
+                }
+            case PlanetState.Desert:
+                {
+                    return CanColonize();
+                }
+            default:
+                return false;
+        }
+    }
+
+    public override List<Sprite> GetMissingResourcesForAction()
+    {
+        List<Sprite> result = new List<Sprite>();
+        
+        if (planetState == PlanetState.Desert && !CanColonize())
+        {
+            foreach (ResourceRequirement req in requirements)
+            {
+                if (manager.GetResourceType(req.type) < req.amount)
+                {
+                    result.Add(manager.GetSmallIconForResourceType(req.type));
+                }
+            }
+        }
+        else if (planetState == PlanetState.Colonized && !CanSpawnShip())
+        {
+            foreach (ResourceRequirement req in shipSpawnRequirements)
+            {
+                if (manager.GetResourceType(req.type) < req.amount)
+                {
+                    result.Add(manager.GetSmallIconForResourceType(req.type));
+                }
+            }
+        }
+
+        return result;
+    }
+
+    public override Sprite GetSpriteForAction()
+    {
+        if (planetState == PlanetState.Desert && CanColonize())
+        {
+            return manager.colonizeIcon;
+        }
+        else return manager.shipIcon;
+    }
+
+    public override bool TryGetBuildingTypeSmallIcon(out Sprite sp)
+    {
+        sp = manager.smallShipIcon;
+        return planetState == PlanetState.Desert && CanColonize();
+    }
 }
