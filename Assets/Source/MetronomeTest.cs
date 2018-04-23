@@ -128,5 +128,10 @@ public class MetronomeTest : MonoBehaviour
         source.Stop();
         SetStartTime(time);
     }
+
+    public void Stop()
+    {
+        source.Stop();
+    }
 }
 

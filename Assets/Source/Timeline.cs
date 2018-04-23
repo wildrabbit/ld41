@@ -53,6 +53,10 @@ public class Timeline : MonoBehaviour
     // Update is called once per frame
     void Update ()
     {
+        if (!manager.running)
+        {
+            return;
+        }
         List<SpriteRenderer> removals = new List<SpriteRenderer>();
         foreach (SpriteRenderer beat in beats)
         {

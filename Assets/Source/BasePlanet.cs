@@ -106,6 +106,7 @@ public class BasePlanet : MonoBehaviour
                 case PlanetState.Destroyed:
                     {
                         planetCollider.enabled = false;
+                        PlanetDestroyed();
                         break;
                     }
             }
@@ -273,5 +274,10 @@ public class BasePlanet : MonoBehaviour
     {
         sp = null;
         return false;
+    }
+
+    protected virtual void PlanetDestroyed()
+    {
+
     }
 }

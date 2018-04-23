@@ -18,6 +18,13 @@ public enum TeamType
     AI
 }
 
+public enum LevelResult
+{
+    Continue,
+    Won,
+    Lost    
+}
+
 [System.Serializable]
 public struct ResourceIconMapping
 {
@@ -82,12 +89,30 @@ public class PlanetManager : MonoBehaviour
 
     public bool cycle = false;
 
+    public SpriteRenderer cover;
+    public SpriteRenderer howto;
+
+    int stage = 0;
+
+
+    const string victoryText = "YOU WON! Thanks for playing";
+    const string defeatText = "YOU LOST! Keep trying";
+    const string restartText = "Press any key to restart";
+    public UnityEngine.UI.Text resultText;
+    public UnityEngine.UI.Text continueText;
+    public Transform resultPanel;
+
     public List<BaseShip> ships = new List<BaseShip>();
 
     public int TotalBeats 
     {
         get { return totalTicks;  }
     }
+
+    LevelResult levelResult = LevelResult.Continue;
+    public bool running = false;
+    public HQPlanet playerBase;
+    public EnemyPlanet enemyBase;
 
     public void Cycle()
     {
@@ -101,6 +126,7 @@ public class PlanetManager : MonoBehaviour
         currentBeatMarkerIdx = 0;
         lastTouchedBeat = 0;
         lastRelevantBeat = songBeats.Count > 0 ? songBeats[songBeats.Count - 1] : -1;
+        enemyBase.ResetBeatCounter();
         bool offLimits = false;
         while (!offLimits)
         {
@@ -115,6 +141,7 @@ public class PlanetManager : MonoBehaviour
 
     private void Awake()
     {
+        Screen.SetResolution(800, 600, false);
         DOTween.Init();
         followers = Transform.FindObjectsOfType<BasePlanet>();
 
@@ -133,13 +160,12 @@ public class PlanetManager : MonoBehaviour
             {ResourceType.Population, 10 }
         };
     }
-    // Use this for initialization
-    void Start()
+    void StartGame()
     {
         start = AudioSettings.dspTime;
 
         totalSongBeats = (int)Math.Round(source.clip.length * metronome.bpm / 60);
-        source.PlayScheduled(start + delay);        
+        source.PlayScheduled(start + delay);
         source.volume = 0.1f;
         metronome.SetStartTime(start + delay);
         timeline.Init();
@@ -152,7 +178,7 @@ public class PlanetManager : MonoBehaviour
 
         }
 
-        
+
         totalTicks = 0;
         currentBeatInfoIdx = 0;
         lastTouchedBeat = 0;
@@ -160,7 +186,7 @@ public class PlanetManager : MonoBehaviour
         songBeats = leSong.GetBeats();
         lastRelevantBeat = songBeats.Count > 0 ? songBeats[songBeats.Count - 1] : -1;
         currentBeatMarkerIdx = 0;
-        bool offLimits = false;    
+        bool offLimits = false;
         while (!offLimits)
         {
             if (songBeats[currentBeatMarkerIdx] < timeline.maxBeats)
@@ -170,12 +196,69 @@ public class PlanetManager : MonoBehaviour
             }
             else offLimits = true;
         }
+        levelResult = LevelResult.Continue;
+        running = true;
+    }
+    // Use this for initialization
+    void Start()
+    {
 
+        stage = 0;
+        cover.gameObject.SetActive(true);
+        howto.gameObject.SetActive(false);
+        
     }
 
+    float overElapsed = -1.0f;
+    float overDelay = 1.5f;
     // Update is called once per frame
     void Update()
     {
+        if (stage == 0 && Input.anyKey)
+        {
+            stage = 1;
+            cover.gameObject.SetActive(false);
+            howto.gameObject.SetActive(true);
+            overElapsed = 0.0f;
+            return;
+        }
+        else if (stage == 1)
+        {
+            if (overElapsed >= 0)
+            {
+                overElapsed += Time.deltaTime;
+                if (overElapsed > overDelay)
+                {
+                    overElapsed = -1.0f;
+                }
+            }
+            else if (Input.anyKey)
+            {
+                stage = 2;
+                StartGame();
+                cover.gameObject.SetActive(false);
+                howto.gameObject.SetActive(false);
+            }
+            return;
+        }
+
+        if (!running)
+        {
+            if (overElapsed >= 0)
+            {
+                overElapsed += Time.deltaTime;
+                if (overElapsed >= overDelay)
+                {
+                    continueText.gameObject.SetActive(true);
+                    overElapsed = -1.0f;
+                }
+            }
+            else if (Input.anyKey)
+            {
+                UnityEngine.SceneManagement.SceneManager.LoadScene(0);
+            }
+            return;
+        }
         BeatEntry currentBeat;
         bool validBeat = leSong.GetBeat(currentBeatInfoIdx, out currentBeat);
         if (!validBeat)
@@ -206,7 +289,28 @@ public class PlanetManager : MonoBehaviour
                 {
                     Cycle();
                 }
-
+                else
+                {
+                    if (playerBase.HP >= enemyBase.HP)
+                    {
+                        levelResult = LevelResult.Won;
+                    }
+                    else
+                    {
+                        levelResult = LevelResult.Lost;
+                    }
+                }
+            }
+            else
+            {
+                if (enemyBase.Destroyed)
+                {
+                    levelResult = LevelResult.Won;
+                }
+                else if (playerBase.Destroyed)
+                {
+                    levelResult = LevelResult.Lost;
+                }
             }
         }
 
@@ -222,6 +326,21 @@ public class PlanetManager : MonoBehaviour
                 currentBeatInfoIdx++;
         }
 
+        if (levelResult != LevelResult.Continue)
+        {
+            metronome.Stop();
+            //source.Stop();
+            running = false;
+            foreach(BaseShip s in ships)
+            {
+                s.Hit(s.maxHP);
+            }
+            overElapsed = 0.0f;
+            resultPanel.gameObject.SetActive(true);
+            resultText.text = (levelResult == LevelResult.Won) ? victoryText : defeatText;
+            continueText.gameObject.SetActive(false);
+        }
+
         List<BaseShip> shipsToRemove = ships.FindAll((s) => s.IsDead);
 
         foreach (BaseShip s in shipsToRemove)
@@ -230,7 +349,6 @@ public class PlanetManager : MonoBehaviour
             GameObject.Destroy(s.gameObject);
             ships.Remove(s);
         }
-
     }
 
     public void EvaluateTap(BasePlanet tappedPlanet)
@@ -432,4 +550,12 @@ public class PlanetManager : MonoBehaviour
         return null;
     }
 
+    public void DestroyShipsForFaction(TeamType id)
+    {
+        List<BaseShip> ships = GetShipsForFaction(id);
+        foreach(BaseShip s in ships)
+        {
+            s.Hit(s.maxHP);
+        }
+    }
 }

@@ -22,14 +22,32 @@ public class EnemyPlanet : BasePlanet
     public int maxShipsToDeploy = 6;
     public float deployProbability = 0.6f;
 
+    public int minStartDecisionBeats = 2;
+    public int maxStartDecisionBeats = 4;
+    public int multStartDecisionBeats = 8;
+
+    public int minDecisionBeats = 1;
+    public int maxDecisionBeats = 4;
+    public int minDecisionMult = 3;
+    public int maxDecisionMult = 4;
+
+    public int minSpawnUnits = 1;
+    public int maxSpawnUnits = 3;
+
     public int counter = 0;
+
     // Decision logic
 
     protected override void Start()
     {
         base.Start();
         teamID = TeamType.AI;
-        nextDecisionBeat = 8 * UnityEngine.Random.Range(2, 4);
+        nextDecisionBeat = multStartDecisionBeats * UnityEngine.Random.Range(minStartDecisionBeats, maxStartDecisionBeats);
+    }
+
+    public void ResetBeatCounter()
+    {
+        nextDecisionBeat = multStartDecisionBeats * UnityEngine.Random.Range(minStartDecisionBeats, maxStartDecisionBeats);
     }
 
     public override void OnBeat(bool isRelevant)
@@ -50,7 +68,7 @@ public class EnemyPlanet : BasePlanet
             {
                 case EnemyDecision.Spawn:
                     {
-                        int units = UnityEngine.Random.Range(1, 2);
+                        int units = UnityEngine.Random.Range(minSpawnUnits, maxSpawnUnits);
                         Debug.LogFormat("Spawning {0} {1} enemy units", units, shipPrefab.shipName);
                         for (int i = 0; i < units; ++i)
                         {
@@ -64,13 +82,15 @@ public class EnemyPlanet : BasePlanet
                 case EnemyDecision.Deploy:
                     {
                         List<BasePlanet> planets = manager.GetPlanetsInFaction(TeamType.Player);
-                        BasePlanet target = planets[UnityEngine.Random.Range(0, planets.Count - 1)];
-                        manager.LaunchAttack(target, 0.0f);
+                        // Force attacking only the base
+                        BasePlanet target = planets.Find(x => x is HQPlanet);
+                        if (target != null)
+                            manager.LaunchAttack(target, 0.0f);
                         break;
                     }
             }
 
-            nextDecisionBeat += Random.Range(3,6) * UnityEngine.Random.Range(1, 4);
+            nextDecisionBeat += Random.Range(minDecisionMult,maxDecisionMult) * UnityEngine.Random.Range(minDecisionBeats, maxDecisionBeats);
         }
         base.OnBeat(isRelevant);
     }
@@ -176,5 +196,10 @@ public class EnemyPlanet : BasePlanet
             return manager.attackIcon;
         }
         return null;
+    }
+
+    protected override void PlanetDestroyed()
+    {
+        manager.DestroyShipsForFaction(teamID);
     }
 }

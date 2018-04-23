@@ -66,7 +66,7 @@ public class BaseShip : MonoBehaviour
     public float angularSpeed = 2; // rad/s
 
     public List<float> multipliers = new List<float>();
-
+    protected Vector2 orbitOffset = Vector2.zero;
     // Use this for initialization
     void Awake () {
         manager = Transform.FindObjectOfType<PlanetManager>();
@@ -79,12 +79,14 @@ public class BaseShip : MonoBehaviour
         teamID = hq.TeamID;
         rootPlanet = hq;
         transform.SetParent(rootPlanet.transform.parent);
-        orbitDistance = rootPlanet.defaultScale * (1.0f + UnityEngine.Random.Range(kRadiusMinOffset, kRadiusMaxOffset)) / 2.0f;
+        CircleCollider2D circleColl = rootPlanet.GetComponent<CircleCollider2D>();
+        orbitOffset = circleColl.offset;
+        orbitDistance = circleColl.radius * (1.0f + UnityEngine.Random.Range(kRadiusMinOffset, kRadiusMaxOffset));
         degree = UnityEngine.Random.value * 2 * Mathf.PI;
         Debug.Log("Angle: " + degree + ", degrees: " + Mathf.Rad2Deg * degree);
         Vector2 polarPos = (Vector2)rootPlanet.transform.position + new Vector2(orbitDistance * Mathf.Cos(degree), orbitDistance * Mathf.Sin(degree));
         transform.rotation = Quaternion.AngleAxis(-90 + Mathf.Rad2Deg * degree, Vector3.forward);
-        transform.position = polarPos;        
+        transform.position = polarPos + orbitOffset;        
     }
 
     virtual protected void Start()
@@ -97,6 +99,11 @@ public class BaseShip : MonoBehaviour
     
 	void Update ()
     {
+        if (!manager.running)
+        {
+            return;
+        }
+
         if(shipState != ShipState.Orbiting && shipState != ShipState.Moving)
         {
             return;
@@ -108,7 +115,7 @@ public class BaseShip : MonoBehaviour
             Debug.Log("Angle: " + degree + ", degrees: " + Mathf.Rad2Deg * degree);
             Vector2 polarPos = (Vector2)rootPlanet.transform.position + new Vector2(orbitDistance * Mathf.Cos(degree), orbitDistance * Mathf.Sin(degree));
             transform.rotation = Quaternion.AngleAxis(-90 + Mathf.Rad2Deg * degree, Vector3.forward);
-            transform.position = polarPos;
+            transform.position = polarPos + orbitOffset;
         }
         else
         {

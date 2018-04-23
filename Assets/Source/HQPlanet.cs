@@ -59,4 +59,9 @@ public class HQPlanet : ResourcePlanet
     {
         return manager.GetIconForResourceType(resourceType);
     }
+
+    protected override void PlanetDestroyed()
+    {
+        manager.DestroyShipsForFaction(teamID);
+    }
 }
