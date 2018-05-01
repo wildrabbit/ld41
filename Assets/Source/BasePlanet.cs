@@ -131,12 +131,6 @@ public class BasePlanet : MonoBehaviour
         SetState(PlanetState.Colonized);
     }
 
-    // Update is called once per frame
-    void Update ()
-    {
-		
-	}
-
     public virtual void OnBeat(bool isRelevant)
     {
         Sequence mySequence = DOTween.Sequence();

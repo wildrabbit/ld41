@@ -36,6 +36,8 @@ public class EnemyPlanet : BasePlanet
 
     public int counter = 0;
 
+    bool paused = false;
+
     // Decision logic
 
     protected override void Start()
@@ -52,6 +54,11 @@ public class EnemyPlanet : BasePlanet
 
     public override void OnBeat(bool isRelevant)
     {
+        if (!manager.running || manager.Paused || paused)
+        {
+            return;
+        }
+
         if (manager.TotalBeats == nextDecisionBeat)
         {
             EnemyDecision decision = EnemyDecision.Spawn;
@@ -201,5 +208,10 @@ public class EnemyPlanet : BasePlanet
     protected override void PlanetDestroyed()
     {
         manager.DestroyShipsForFaction(teamID);
+    }
+
+    public void Pause(bool paused)
+    {
+        this.paused = paused;
     }
 }

@@ -7,7 +7,7 @@ using System;
 // While the game is paused or the suspended, this time will not be updated and sounds playing will be paused. Therefore developers of music scheduling routines do not have to do any rescheduling after the app is unpaused
 
 [RequireComponent(typeof(AudioSource))]
-public class MetronomeTest : MonoBehaviour
+public class MetronomeTest : MonoBehaviour, IBeatTracker
 {
     public double bpm = 140.0F;
     public float gain = 0.5F;
@@ -20,18 +20,40 @@ public class MetronomeTest : MonoBehaviour
     private double sampleRate = 0.0F;
     private int accent;
     private bool running = false;
-    public Queue<int> beats;
+    public int pendingBeats;
     AudioSource source;
 
     double lastTickTime = 0.0f;
+
+    public double BPM
+    {
+        get
+        {
+            return bpm;
+        }
+        set
+        {
+            bpm = value;
+        }
+    }
+
+    public int NumPendingBeats
+    {
+        get { return pendingBeats; }
+    }
     
     private void Awake()
     {
         source = GetComponent<AudioSource>();
-        beats = new Queue<int>();
+        pendingBeats = 0;
         accent = signatureHi;
         sampleRate = AudioSettings.outputSampleRate;
         running = false;
+    }
+
+    public void ResetBeatCount()
+    {
+        pendingBeats = 0;
     }
 
     public void SetStartTime(double time)
@@ -111,9 +133,9 @@ public class MetronomeTest : MonoBehaviour
                     accent = 1;
                     amp *= 2.0F;
                 }
-                                 
+
                 //Debug.Log("Tick #" + totalTicks + ": " + accent + " / " + signatureHi);
-                beats.Enqueue(1);
+                pendingBeats++;
 
                 lastTickTime = AudioSettings.dspTime;
             }

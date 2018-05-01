@@ -18,6 +18,8 @@ public class Timeline : MonoBehaviour
     PlanetManager manager;
     List<SpriteRenderer> beats;
 
+    bool paused = false;
+
 
     private void Awake()
     {
@@ -28,7 +30,7 @@ public class Timeline : MonoBehaviour
     public void Init ()
     {
         beats = new List<SpriteRenderer>();
-        float timeToCoverBeat = (float)manager.metronome.TimeBetweenBeats;
+        float timeToCoverBeat = (float)manager.activeMetronome.TimeBetweenBeats;
         speed = offset / timeToCoverBeat;
         float scaleX = timeToCoverBeat + (float)PlanetManager.kFailureThreshold * offset;
         thresholdArea.localScale = new Vector2(scaleX, thresholdArea.localScale.y);
@@ -57,6 +59,12 @@ public class Timeline : MonoBehaviour
         {
             return;
         }
+
+        if (manager.Paused)
+        {
+            return;
+        }
+
         List<SpriteRenderer> removals = new List<SpriteRenderer>();
         foreach (SpriteRenderer beat in beats)
         {

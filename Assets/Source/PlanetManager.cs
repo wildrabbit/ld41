@@ -54,6 +54,10 @@ public class PlanetManager : MonoBehaviour
     public Dictionary<ResourceType, int> resources;
 
     public MetronomeTest metronome;
+    public BeatTracker simpleMetronome;
+
+    public IBeatTracker activeMetronome;
+
     public Timeline timeline;
 
     BasePlanet[] followers;
@@ -84,13 +88,12 @@ public class PlanetManager : MonoBehaviour
     List<int> songBeats = null;
     int lastRelevantBeat = 0;
     int totalSongBeats = 0;
-    int lastTouchedBeat = 0;
-    double duration = 0;
+    int lastTouchedBeat = 0;    
 
     public bool cycle = false;
 
-    public SpriteRenderer cover;
-    public SpriteRenderer howto;
+    public GameObject cover;
+    public GameObject howto;
 
     int stage = 0;
 
@@ -114,10 +117,16 @@ public class PlanetManager : MonoBehaviour
     public HQPlanet playerBase;
     public EnemyPlanet enemyBase;
 
+    TutorialManager tutorialManager;
+    bool paused = false;
+    public bool Paused { get { return paused; } }
+    bool inputEnabled = false;
+    bool aiEnabled = false;
+
     public void Cycle()
     {
         double next = AudioSettings.dspTime;
-        metronome.Reset(next/* + metronome.TimeBetweenBeats*/);
+        activeMetronome.Reset(next/* + metronome.TimeBetweenBeats*/);
         source.Stop();
         source.PlayScheduled(next/* + metronome.TimeBetweenBeats*/);
 
@@ -141,17 +150,25 @@ public class PlanetManager : MonoBehaviour
 
     private void Awake()
     {
+#if UNITY_WEBGL
+        activeMetronome = simpleMetronome;
+        metronome.gameObject.SetActive(false);
+#else
+        activeMetronome = metronome;
+        simpleMetronome.gameObject.SetActive(false);
+#endif
         Screen.SetResolution(800, 600, false);
         DOTween.Init();
         followers = Transform.FindObjectsOfType<BasePlanet>();
 
+        tutorialManager = Transform.FindObjectOfType<TutorialManager>();
         source = GetComponent<AudioSource>();
         marker = GetComponentInChildren<SpriteRenderer>();
         if (marker != null) marker.gameObject.SetActive(false);
 
         leSong.LoadSheet();
         source.clip = leSong.songResource;
-        metronome.bpm = leSong.bpm;
+        activeMetronome.BPM = leSong.bpm;
 
         resources = new Dictionary<ResourceType, int>()
         {
@@ -164,10 +181,9 @@ public class PlanetManager : MonoBehaviour
     {
         start = AudioSettings.dspTime;
 
-        totalSongBeats = (int)Math.Round(source.clip.length * metronome.bpm / 60);
+        totalSongBeats = (int)Math.Round(source.clip.length * activeMetronome.BPM / 60);
         source.PlayScheduled(start + delay);
-        source.volume = 0.1f;
-        metronome.SetStartTime(start + delay);
+        activeMetronome.SetStartTime(start + delay);
         timeline.Init();
 
         foreach (BasePlanet f in followers)
@@ -175,7 +191,6 @@ public class PlanetManager : MonoBehaviour
             Beat += f.OnBeat;
             BeatSuccess += f.OnBeatSuccess;
             BeatFailed += f.OnBeatFailed;
-
         }
 
 
@@ -198,14 +213,19 @@ public class PlanetManager : MonoBehaviour
         }
         levelResult = LevelResult.Continue;
         running = true;
+
+        if (tutorialManager && tutorialManager.TutorialEnabled)
+        {
+            tutorialManager.StartTutorial(0, 1);
+        }
     }
     // Use this for initialization
     void Start()
     {
 
         stage = 0;
-        cover.gameObject.SetActive(true);
-        howto.gameObject.SetActive(false);
+        cover.SetActive(true);
+        howto.SetActive(false);
         
     }
 
@@ -217,8 +237,8 @@ public class PlanetManager : MonoBehaviour
         if (stage == 0 && Input.anyKey)
         {
             stage = 1;
-            cover.gameObject.SetActive(false);
-            howto.gameObject.SetActive(true);
+            cover.SetActive(false);
+            howto.SetActive(true);
             overElapsed = 0.0f;
             return;
         }
@@ -259,6 +279,12 @@ public class PlanetManager : MonoBehaviour
             }
             return;
         }
+
+        if (paused)
+        {
+            return;
+        }
+
         BeatEntry currentBeat;
         bool validBeat = leSong.GetBeat(currentBeatInfoIdx, out currentBeat);
         if (!validBeat)
@@ -266,9 +292,10 @@ public class PlanetManager : MonoBehaviour
             return;
         }
 
-        while (metronome.beats.Count > 0)
+        int pendingBeats = activeMetronome.NumPendingBeats;
+        while (pendingBeats > 0)
         {
-            int value = metronome.beats.Dequeue();
+            pendingBeats--;
             bool relevantBeat = validBeat && currentBeat.beat == totalTicks;
             Beat(relevantBeat);
 
@@ -313,9 +340,10 @@ public class PlanetManager : MonoBehaviour
                 }
             }
         }
+        activeMetronome.ResetBeatCount();
 
         // Update active beat
-        double delta = metronome.GetRemainingTimeToTick(currentBeat.beat);
+        double delta = activeMetronome.GetRemainingTimeToTick(currentBeat.beat);
         if (totalTicks <= lastRelevantBeat && delta < -kFailureThreshold*1.002)
         {
             if (lastTouchedBeat != currentBeat.beat)
@@ -328,7 +356,7 @@ public class PlanetManager : MonoBehaviour
 
         if (levelResult != LevelResult.Continue)
         {
-            metronome.Stop();
+            activeMetronome.Stop();
             //source.Stop();
             running = false;
             foreach(BaseShip s in ships)
@@ -359,10 +387,10 @@ public class PlanetManager : MonoBehaviour
             return; 
         }
 
-        double delta = metronome.GetRemainingTimeToTick(be.beat);
+        double delta = activeMetronome.GetRemainingTimeToTick(be.beat);
         Debug.LogFormat("DELTA: {2}, Expected beat #{0}. Current: {1}", be.beat, totalTicks, delta);
 
-        if (delta < -kFailureThreshold || delta > metronome.TimeBetweenBeats)
+        if (delta < -kFailureThreshold || delta > activeMetronome.TimeBetweenBeats)
         {
             BeatFailed(tappedPlanet);
             return;
@@ -385,7 +413,7 @@ public class PlanetManager : MonoBehaviour
 
     public List<BeatEntry> GetBeatsInRange()
     {
-        return leSong.GetBeatsInRange(metronome.GetTotalElapsed(), 5.0f, 1.0f);
+        return leSong.GetBeatsInRange(activeMetronome.GetTotalElapsed(), 5.0f, 1.0f);
     }
 
     public List<int> GetBeats()
@@ -557,5 +585,21 @@ public class PlanetManager : MonoBehaviour
         {
             s.Hit(s.maxHP);
         }
+    }
+
+    public void PauseLogic(bool paused)
+    {
+        this.paused = paused;
+    }
+    
+    public void SetInputEnabled(bool enabled)
+    {
+        inputEnabled = enabled && !paused;        
+    }
+
+    public void setAIEnabled(bool aiEnabled)
+    {
+        this.aiEnabled = aiEnabled && !paused;
+        enemyBase.Pause(aiEnabled);
     }
 }

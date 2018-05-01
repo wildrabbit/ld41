@@ -99,7 +99,7 @@ public class BaseShip : MonoBehaviour
     
 	void Update ()
     {
-        if (!manager.running)
+        if (!manager.running || manager.Paused)
         {
             return;
         }
@@ -125,7 +125,7 @@ public class BaseShip : MonoBehaviour
             //if (Mathf.Abs(targetOrientation - deg ) < 2.0f)
             //{
                 velocity = (targetPlanet.transform.position - transform.position).normalized;
-                transform.position += (Vector3)(((float)manager.metronome.TimeBetweenBeats * speedMultiplier  *  Time.deltaTime) * velocity);
+                transform.position += (Vector3)(((float)manager.activeMetronome.TimeBetweenBeats * speedMultiplier  *  Time.deltaTime) * velocity);
 
                 if (Vector2.Distance(transform.position, targetPlanet.transform.position) < 1)
                 {
